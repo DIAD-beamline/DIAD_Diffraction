@@ -1,0 +1,22 @@
+# Windows / PowerShell Setup Notes
+
+This project uses a `src/` directory layout.  
+On macOS and Linux, the Python environment automatically picks this up.  
+On Windows PowerShell, you may need to set PYTHONPATH manually, because:
+
+- PowerShell does not always inherit environment variables correctly
+- uv may not load .env/.uv.env automatically on Windows
+- Some shells start Jupyter with a different working directory
+
+If imports like this fail in a notebook or script:
+
+    from diffraction_data_explorer import DiffractionDataExplorer
+
+You can fix it by setting PYTHONPATH **in your PowerShell session**:
+
+    $env:PYTHONPATH = "src"
+
+This must be run from the project root directory.
+
+You only need to do this once per PowerShell session.
+Alternatively, use WSL or VS Code's "WSL: Connect" mode for a more Linux-like environment.

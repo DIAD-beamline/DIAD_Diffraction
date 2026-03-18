@@ -3,3 +3,7 @@
 # Keep this file and the README
 !.gitignore
 !README.md
+
+# Allow the mg12123-1 dataset and all its content
+!mg12123-1/
+!mg12123-1/**
