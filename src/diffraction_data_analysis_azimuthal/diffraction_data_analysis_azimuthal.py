@@ -703,6 +703,29 @@ class DiffractionDataAnalysis_Azzimuthal:
                     sc = axs.scatter(kbx[i], kby[j], facecolors=[self.facec], edgecolors=[color], s=SpotSize, alpha=0.6)
                     scatter_plots.append(sc)
 
+    
+    def average_significant_values(self, cry, GoF, GoF_threshold):
+        # Flatten arrays if 2D
+        if self.dim < 2:
+            flat_cry = cry
+            flat_GoF = [abs(item - 1.0) for item in GoF]
+        else:
+            flat_cry =  [item for sub in cry for item in sub]
+            flat_GoF = [abs(item - 1.0) for sub in GoF for item in sub]
+
+        # Select significant cry values
+        if GoF_threshold is None:
+            data = [v for v in flat_cry if v > 0.0]
+        else:
+            data = [v for v, g in zip(flat_cry, flat_GoF) if g < GoF_threshold and v > 0.0]
+
+        # Handle empty selections
+        if len(data) == 0:
+            return None
+
+        # Return average
+        return np.mean(data)
+    
     def update_color_scale(self, val, ax, kbx, kby, cry, cmap, scatter_plots):
         min_val, max_val = val
         norm = plt.Normalize(min_val, max_val)
@@ -995,7 +1018,7 @@ class DiffractionDataAnalysis_Azzimuthal:
         plt.subplots_adjust(top=0.95)  # Adjust the top padding as needed
         plt.show()
 
-    def ImageCorrelatedCrystallography_Azimuthal(self, x_min, x_max, n = 0, GoF_threshold=0.02, Percentile=10, Output='view', Mean_min=None, Mean_max=None, Area_min=None, Area_max=None, FWHM_min=None, FWHM_max=None, Mean_relax=None):
+    def ImageCorrelatedCrystallography_Azimuthal(self, x_min, x_max, n = 0, GoF_threshold=0.02, Percentile=10, Output='view', Mean_min=None, Mean_max=None, Area_min=None, Area_max=None, FWHM_min=None, FWHM_max=None, Mean_relax=None, Base_reference=None):
         self.import_diffractiondata_Azimuthal()
         self.import_imaging_data()
         self.initialize_configuration()
@@ -1022,6 +1045,24 @@ class DiffractionDataAnalysis_Azzimuthal:
                     self.pk_Area_Normalized[ix][iy] /= Obj.get_flux(self.kbx[ix], self.kby[iy])
         
         cmap = plt.cm.get_cmap('coolwarm')  # Blue to red color scale
+        
+        if Base_reference != None:
+            self.Average_Mean = self.average_significant_values(Base_reference.pk_Mean,Base_reference.pk_GoF, GoF_threshold)
+            self.Average_Area = self.average_significant_values(Base_reference.pk_Area,Base_reference.pk_GoF, GoF_threshold)
+            self.Average_FWHM = self.average_significant_values(Base_reference.pk_fwhm,Base_reference.pk_GoF, GoF_threshold)
+            
+            if self.Average_Mean != None:
+                self.pk_Mean = np.asarray(self.pk_Mean, dtype=float)
+                Base_reference.pk_Mean = np.asarray(Base_reference.pk_Mean, dtype=float)
+                self.pk_Mean = np.array(self.pk_Mean) - np.array(Base_reference.pk_Mean) + self.Average_Mean
+            if self.Average_Area != None:
+                self.pk_Area_Normalized = np.asarray(self.pk_Area_Normalized, dtype=float)
+                Base_reference.pk_Area_Normalized = np.asarray(Base_reference.pk_Area_Normalized, dtype=float)
+                self.pk_Area_Normalized = np.array(self.pk_Area_Normalized) - np.array(Base_reference.pk_Area_Normalized) + self.Average_Area
+            if self.Average_FWHM != None:
+                self.pk_fwhm = np.asarray(self.pk_fwhm, dtype=float)
+                Base_reference.pk_fwhm = np.asarray(Base_reference.pk_fwhm, dtype=float)
+                self.pk_fwhm = np.array(self.pk_fwhm) - np.array(Base_reference.pk_fwhm) + self.Average_FWHM
         
         if(Output=='view'):
             
