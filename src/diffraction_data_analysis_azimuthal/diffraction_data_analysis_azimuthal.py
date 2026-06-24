@@ -1434,16 +1434,6 @@ class DiffractionDataAnalysis_Azzimuthal:
 
             plt.close(fig_C)
 
-
-
-
-
-
-
-
-
-
-    
     def ImageCorrelatedCrystallography_Azimuthal_Relative(self, x_min_I, x_max_I, x_min_J, x_max_J, n = 0, GoF_threshold=0.02, Percentile=10, Output='view', Mean_min=None, Mean_max=None, Area_min=None, Area_max=None, FWHM_min=None, FWHM_max=None):
         self.import_diffractiondata_Azimuthal()
         self.import_imaging_data()
@@ -1691,19 +1681,6 @@ class DiffractionDataAnalysis_Azzimuthal:
             #hist_ax1.hist(data, bins=40, alpha=1.0, color='gray')
             hist_ax1.yaxis.set_visible(False)
             
-            if Mean_relax!=None:
-                # --- Secondary x-axis ---
-                # Forward transform: from x → (x0 - x)/x
-                def forward(x):
-                    return (Mean_relax - x) / x * 100.0
-                
-                # Inverse transform: from (x0 - x)/x → x
-                def inverse(y):
-                    return Mean_relax / (1 + (y / 100.0))
-                
-                secax = hist_ax1.secondary_xaxis("top", functions=(forward, inverse))
-                secax.set_xlabel("Deformation (%)")
-            
             plt.tight_layout(pad=1)
             
             # Save button callback
@@ -1834,22 +1811,6 @@ class DiffractionDataAnalysis_Azzimuthal:
 
             plt.close(fig_C)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    
     def ImageCorrelatedCrystallography_Cake_ExploreArea(self, x_min, x_max, n = 0, GoF_threshold = 0.02, Percentile=10):
         self.import_diffractiondata_Cake()
         self.import_imaging_data()
