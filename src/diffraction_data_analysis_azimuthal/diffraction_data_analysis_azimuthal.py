@@ -1434,6 +1434,422 @@ class DiffractionDataAnalysis_Azzimuthal:
 
             plt.close(fig_C)
 
+
+
+
+
+
+
+
+
+
+    
+    def ImageCorrelatedCrystallography_Azimuthal_Relative(self, x_min_I, x_max_I, x_min_J, x_max_J, n = 0, GoF_threshold=0.02, Percentile=10, Output='view', Mean_min=None, Mean_max=None, Area_min=None, Area_max=None, FWHM_min=None, FWHM_max=None):
+        self.import_diffractiondata_Azimuthal()
+        self.import_imaging_data()
+        self.initialize_configuration()
+        
+        self.cheb_n = n
+        self.GoF_threshold = GoF_threshold
+        
+        pk_Mean_I, pk_Area_I, pk_fwhm_I, pk_popt_I, pk_GoF_I = self.get_ProfilePeakParameters_Azimuthal(x_min_I, x_max_I, n)
+        pk_Mean_J, pk_Area_J, pk_fwhm_J, pk_popt_J, pk_GoF_J = self.get_ProfilePeakParameters_Azimuthal(x_min_J, x_max_J, n)
+        
+        # Relative Peak Parameters
+        
+        if self.dim == 1:
+            pk_Area_Relative = pk_Area_I[:]
+            pk_Mean_Relative = pk_Mean_I[:]
+            pk_fwhm_Relative = pk_fwhm_I[:]
+            for ix in range(len(self.kbx)):
+                pk_Area_Relative[ix] = (pk_Area_J[ix] / pk_Area_I[ix] if pk_Area_I[ix] != 0 else 0)
+                pk_Mean_Relative[ix] = (pk_Mean_J[ix] / pk_Mean_I[ix] if pk_Mean_I[ix] != 0 else 0)
+                pk_fwhm_Relative[ix] = (pk_fwhm_J[ix] / pk_fwhm_I[ix] if pk_fwhm_I[ix] != 0 else 0)
+        else:
+            pk_Area_Relative = [sublist[:] for sublist in pk_Area_I]
+            pk_Mean_Relative = [sublist[:] for sublist in pk_Mean_I]
+            pk_fwhm_Relative = [sublist[:] for sublist in pk_fwhm_I]
+            for ix in range(len(self.kbx)):
+                for iy in range(len(self.kby)):
+                    pk_Area_Relative[ix][iy] = (pk_Area_J[ix][iy] / pk_Area_I[ix][iy] if pk_Area_I[ix][iy] != 0 else 0)
+                    pk_Mean_Relative[ix][iy] = (pk_Mean_J[ix][iy] / pk_Mean_I[ix][iy] if pk_Mean_I[ix][iy] != 0 else 0)
+                    pk_fwhm_Relative[ix][iy] = (pk_fwhm_J[ix][iy] / pk_fwhm_I[ix][iy] if pk_fwhm_I[ix][iy] != 0 else 0)
+        
+        cmap = plt.cm.get_cmap('coolwarm')  # Blue to red color scale
+        
+        if(Output=='view'):
+            
+            self.img_height = self.fig_width * self.aspect_ratio / 2
+            fig_height = self.img_height
+            fig = plt.figure(figsize=(self.fig_width, fig_height))
+            gs = GridSpec(2, 3, height_ratios=[0.7,0.3], width_ratios=[1, 1, 1], figure=fig)
+            
+            # Plot images and scatter values
+            ax1 = fig.add_subplot(gs[0, 0])
+            ax1.imshow(self.img_array, cmap='Greys', aspect='equal')
+            ax1.set_xlim(0, self.x_range_img)
+            ax1.set_ylim(self.y_range_img, 0)
+            ax1.set_xlabel("(um)")
+            ax1.set_ylabel("(um)")
+            ax1.set_title("Peak Mean")
+            ax1.xaxis.set_major_locator(MultipleLocator(256 / self.binning * 2))
+            ax1.yaxis.set_major_locator(MultipleLocator(216 / self.binning * 2))
+            ax1.xaxis.set_major_formatter(FuncFormatter(self.scale_x))
+            ax1.yaxis.set_major_formatter(FuncFormatter(self.scale_y))
+            self.plot_scatter_values(ax1, cmap, self.scatter_plots_mean_a, self.kbx, self.kby, pk_Mean_Relative, pk_GoF_I, GoF_threshold, Percentile, Min_Range=Mean_min, Max_Range=Mean_max)
+            
+            ax2 = fig.add_subplot(gs[0, 1])
+            ax2.imshow(self.img_array, cmap='Greys', aspect='equal')
+            ax2.set_xlim(0, self.x_range_img)
+            ax2.set_ylim(self.y_range_img, 0)
+            ax2.set_xlabel("(um)")
+            ax2.set_ylabel("(um)")
+            ax2.set_title("Normalized Peak Area")
+            ax2.xaxis.set_major_locator(MultipleLocator(256 / self.binning * 2))
+            ax2.yaxis.set_major_locator(MultipleLocator(216 / self.binning * 2))
+            ax2.xaxis.set_major_formatter(FuncFormatter(self.scale_x))
+            ax2.yaxis.set_major_formatter(FuncFormatter(self.scale_y))
+            self.plot_scatter_values(ax2, cmap, self.scatter_plots_area, self.kbx, self.kby, pk_Area_Relative, pk_GoF_I, GoF_threshold, Percentile, Min_Range=Area_min, Max_Range=Area_max)
+            
+            ax3 = fig.add_subplot(gs[0, 2])
+            ax3.imshow(self.img_array, cmap='Greys', aspect='equal')
+            ax3.set_xlim(0, self.x_range_img)
+            ax3.set_ylim(self.y_range_img, 0)
+            ax3.set_xlabel("(um)")
+            ax3.set_ylabel("(um)")
+            ax3.set_title("Peak FWHM")
+            ax3.xaxis.set_major_locator(MultipleLocator(256 / self.binning * 2))
+            ax3.yaxis.set_major_locator(MultipleLocator(216 / self.binning * 2))
+            ax3.xaxis.set_major_formatter(FuncFormatter(self.scale_x))
+            ax3.yaxis.set_major_formatter(FuncFormatter(self.scale_y))
+            self.plot_scatter_values(ax3, cmap, self.scatter_plots_fwhm, self.kbx, self.kby, pk_fwhm_Relative, pk_GoF_I, GoF_threshold, Percentile, Min_Range=FWHM_min, Max_Range=FWHM_max)
+            
+            # Plot histograms
+            if self.dim < 2:
+                flat_GoF = [np.abs(item - 1.0) for item in pk_GoF_I]
+            else:
+                flat_GoF = [np.abs(item - 1.0) for sublist in pk_GoF_I for item in sublist]
+    
+            
+            if self.dim < 2:
+                flat_cry = pk_Mean_Relative
+            else:
+                flat_cry = [item for sublist in pk_Mean_Relative for item in sublist]
+            if self.GoF_threshold is None:
+                data = [flat_cry for flat_cry in flat_cry if flat_cry > 0.0]
+            else:
+                data = [flat_cry for flat_cry, flat_GoF in zip(flat_cry, flat_GoF) if flat_GoF < self.GoF_threshold]
+            if Percentile >= 0.0:
+                vmin, vmax = np.percentile(data, [Percentile, 100-Percentile])
+            else:
+                if Mean_min==None: vmin = 0.0
+                else: vmin = Mean_min
+                if Mean_max==None: vmax = np.max(data)
+                else: vmax = Mean_max
+            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            #norm = plt.Normalize(np.min(data), np.max(data))
+            hist_ax1 = fig.add_subplot(gs[1, 0])
+            n, bins, patches = hist_ax1.hist(data, bins=40, range=(vmin, vmax), alpha=1.0)
+            for patch, value in zip(patches, bins):
+                color = cmap(norm(value))
+                patch.set_facecolor(color)
+            #hist_ax1.hist(data, bins=40, alpha=1.0, color='gray')
+            hist_ax1.yaxis.set_visible(False)
+            
+            if self.dim < 2:
+                flat_cry = pk_Area_Relative
+            else:
+                flat_cry = [item for sublist in pk_Area_Relative for item in sublist]
+            if self.GoF_threshold is None:
+                data = [flat_cry for flat_cry in flat_cry if flat_cry > 0.0]
+            else:
+                data = [flat_cry for flat_cry, flat_GoF in zip(flat_cry, flat_GoF) if flat_GoF < self.GoF_threshold]
+            if Percentile >= 0.0:
+                vmin, vmax = np.percentile(data, [Percentile, 100-Percentile])
+            else:
+                if Area_min==None: vmin = 0.0
+                else: vmin = Area_min
+                if Area_max==None: vmax = np.max(data)
+                else: vmax = Area_max
+            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            #norm = plt.Normalize(np.min(data), np.max(data))
+            hist_ax2 = fig.add_subplot(gs[1, 1])
+            n, bins, patches = hist_ax2.hist(data, bins=40, range=(vmin, vmax), alpha=1.0)
+            for patch, value in zip(patches, bins):
+                color = cmap(norm(value))
+                patch.set_facecolor(color)
+            #hist_ax2.hist(data, bins=40, alpha=1.0, color='gray')
+            hist_ax2.yaxis.set_visible(False)
+    
+            if self.dim < 2:
+                flat_cry = pk_fwhm_Relative
+            else:
+                flat_cry = [item for sublist in pk_fwhm_Relative for item in sublist]
+            if self.GoF_threshold is None:
+                data = [flat_cry for flat_cry in flat_cry if flat_cry > 0.0]
+            else:
+                data = [flat_cry for flat_cry, flat_GoF in zip(flat_cry, flat_GoF) if flat_GoF < self.GoF_threshold]
+            if Percentile >= 0.0:
+                vmin, vmax = np.percentile(data, [Percentile, 100-Percentile])
+            else:
+                if FWHM_min==None: vmin = 0.0
+                else: vmin = FWHM_min
+                if FWHM_max==None: vmax = np.max(data)
+                else: vmax = FWHM_max
+            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            #norm = plt.Normalize(np.min(data), np.max(data))
+            hist_ax3 = fig.add_subplot(gs[1, 2])
+            n, bins, patches = hist_ax3.hist(data, bins=40, range=(vmin, vmax), alpha=1.0)
+            for patch, value in zip(patches, bins):
+                color = cmap(norm(value))
+                patch.set_facecolor(color)
+            #hist_ax3.hist(data, bins=40, alpha=1.0, color='gray')
+            hist_ax3.yaxis.set_visible(False)
+            
+            # Save button callback
+            def save_plots(event):
+                self.save_figure_safely(fig, f'{self.Out_Path}_Crystallography.tiff', 'tiff', 600)
+                #fig.savefig(f'{self.Out_Path}_Crystallography.tiff', format='tiff', dpi=600)
+    
+    
+            def save_histograms(event):
+                with open(f'{self.Out_Path}_Histograms.txt', 'w') as f:
+                    f.write("# Relative Peak Mean\n")
+                    for value in hist_ax1.patches:
+                        f.write(f"{value.get_x():.6f}\t{value.get_height():.6f}\n")
+                    f.write("\n# Relative Peak Area\n")
+                    for value in hist_ax2.patches:
+                        f.write(f"{value.get_x():.6f}\t{value.get_height():.6f}\n")
+                    f.write("\n# Relative Peak FWHM\n")
+                    for value in hist_ax3.patches:
+                        f.write(f"{value.get_x():.6f}\t{value.get_height():.6f}\n")
+            
+            # Add button
+            save_button = Button(description="Save Figure", layout=Layout(width='120px'))
+            save_button.on_click(save_plots)
+            
+            save_hist_button = Button(description="Save Histograms", layout=Layout(width='140px'))
+            save_hist_button.on_click(save_histograms)
+                                      
+            display(VBox([HBox([save_button, save_hist_button])]))
+            
+            # Enable interactive mode and adjust layout
+            plt.ion()
+            plt.tight_layout(pad=1)
+            plt.show()
+        else:
+            ### Mean
+            
+            self.img_height = self.fig_width * self.aspect_ratio * 1.50
+            fig_height = self.img_height
+            fig_A = plt.figure(figsize=(self.fig_width / 2.0, fig_height / 2.0))
+            gs = GridSpec(2, 1, height_ratios=[1.0,0.50], figure=fig_A)
+            
+            # Plot images and scatter values
+            ax1 = fig_A.add_subplot(gs[0, 0])
+            ax1.imshow(self.img_array, cmap='Greys', aspect='equal')
+            ax1.set_xlim(0, self.x_range_img)
+            ax1.set_ylim(self.y_range_img, 0)
+            ax1.set_xlabel("(um)")
+            ax1.set_ylabel("(um)")
+            ax1.set_title("Peak Mean")
+            ax1.xaxis.set_major_locator(MultipleLocator(256 / self.binning * 2))
+            ax1.yaxis.set_major_locator(MultipleLocator(216 / self.binning * 2))
+            ax1.xaxis.set_major_formatter(FuncFormatter(self.scale_x))
+            ax1.yaxis.set_major_formatter(FuncFormatter(self.scale_y))
+            self.plot_scatter_values(ax1, cmap, self.scatter_plots_mean_a, self.kbx, self.kby, pk_Mean_Relative, pk_GoF_I, GoF_threshold, Percentile,20, Min_Range=Mean_min, Max_Range=Mean_max)
+            
+            # Plot histograms
+            if self.dim < 2:
+                flat_GoF = [np.abs(item - 1.0) for item in pk_GoF_I]
+            else:
+                flat_GoF = [np.abs(item - 1.0) for sublist in pk_GoF_I for item in sublist]
+    
+            
+            if self.dim < 2:
+                flat_cry = pk_Mean_Relative
+            else:
+                flat_cry = [item for sublist in pk_Mean_Relative for item in sublist]
+            if self.GoF_threshold is None:
+                data = [flat_cry for flat_cry in flat_cry if flat_cry > 0.0]
+            else:
+                data = [flat_cry for flat_cry, flat_GoF in zip(flat_cry, flat_GoF) if flat_GoF < self.GoF_threshold]
+            if Percentile >= 0.0:
+                vmin, vmax = np.percentile(data, [Percentile, 100-Percentile])
+            else:
+                if Mean_min==None: vmin = 0.0
+                else: vmin = Mean_min
+                if Mean_max==None: vmax = np.max(data)
+                else: vmax = Mean_max
+            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            #norm = plt.Normalize(np.min(data), np.max(data))
+            hist_ax1 = fig_A.add_subplot(gs[1, 0])
+            n, bins, patches = hist_ax1.hist(data, bins=40, range=(vmin, vmax), alpha=1.0)
+            for patch, value in zip(patches, bins):
+                color = cmap(norm(value))
+                patch.set_facecolor(color)
+            #hist_ax1.hist(data, bins=40, alpha=1.0, color='gray')
+            hist_ax1.yaxis.set_visible(False)
+            
+            if Mean_relax!=None:
+                # --- Secondary x-axis ---
+                # Forward transform: from x → (x0 - x)/x
+                def forward(x):
+                    return (Mean_relax - x) / x * 100.0
+                
+                # Inverse transform: from (x0 - x)/x → x
+                def inverse(y):
+                    return Mean_relax / (1 + (y / 100.0))
+                
+                secax = hist_ax1.secondary_xaxis("top", functions=(forward, inverse))
+                secax.set_xlabel("Deformation (%)")
+            
+            plt.tight_layout(pad=1)
+            
+            # Save button callback
+            self.save_figure_safely(fig_A, f'{self.Out_Path}_Mean.tiff', 'tiff', 600)
+            #fig_A.savefig(f'{self.Out_Path}_Mean.tiff', format='tiff', dpi=600)
+
+            plt.close(fig_A)
+            
+            ### Area
+            
+            self.img_height = self.fig_width * self.aspect_ratio * 1.50
+            fig_height = self.img_height
+            fig_B = plt.figure(figsize=(self.fig_width / 2.0, fig_height / 2.0))
+            gs = GridSpec(2, 1, height_ratios=[1.0,0.50], figure=fig_B)
+            
+            # Plot images and scatter values
+            ax2 = fig_B.add_subplot(gs[0, 0])
+            ax2.imshow(self.img_array, cmap='Greys', aspect='equal')
+            ax2.set_xlim(0, self.x_range_img)
+            ax2.set_ylim(self.y_range_img, 0)
+            ax2.set_xlabel("(um)")
+            ax2.set_ylabel("(um)")
+            ax2.set_title("Normalized Peak Area")
+            ax2.xaxis.set_major_locator(MultipleLocator(256 / self.binning * 2))
+            ax2.yaxis.set_major_locator(MultipleLocator(216 / self.binning * 2))
+            ax2.xaxis.set_major_formatter(FuncFormatter(self.scale_x))
+            ax2.yaxis.set_major_formatter(FuncFormatter(self.scale_y))
+            self.plot_scatter_values(ax2, cmap, self.scatter_plots_area, self.kbx, self.kby, pk_Area_Relative, pk_GoF_I, GoF_threshold, Percentile,20, Min_Range=Area_min, Max_Range=Area_max)
+            
+            # Plot histograms
+            if self.dim < 2:
+                flat_GoF = [np.abs(item - 1.0) for item in pk_GoF_I]
+            else:
+                flat_GoF = [np.abs(item - 1.0) for sublist in pk_GoF_I for item in sublist]
+    
+            
+            if self.dim < 2:
+                flat_cry = pk_Area_Relative
+            else:
+                flat_cry = [item for sublist in pk_Area_Relative for item in sublist]
+            if self.GoF_threshold is None:
+                data = [flat_cry for flat_cry in flat_cry if flat_cry > 0.0]
+            else:
+                data = [flat_cry for flat_cry, flat_GoF in zip(flat_cry, flat_GoF) if flat_GoF < self.GoF_threshold]
+            if Percentile >= 0.0:
+                vmin, vmax = np.percentile(data, [Percentile, 100-Percentile])
+            else:
+                if Area_min==None: vmin = 0.0
+                else: vmin = Area_min
+                if Area_max==None: vmax = np.max(data)
+                else: vmax = Area_max
+            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            #norm = plt.Normalize(np.min(data), np.max(data))
+            hist_ax2 = fig_B.add_subplot(gs[1, 0])
+            n, bins, patches = hist_ax2.hist(data, bins=40, range=(vmin, vmax), alpha=1.0)
+            for patch, value in zip(patches, bins):
+                color = cmap(norm(value))
+                patch.set_facecolor(color)
+            #hist_ax2.hist(data, bins=40, alpha=1.0, color='gray')
+            hist_ax2.yaxis.set_visible(False)
+
+            plt.tight_layout(pad=1)
+            
+            # Save button callback
+            self.save_figure_safely(fig_B, f'{self.Out_Path}_Area.tiff', 'tiff', 600)
+            #fig_B.savefig(f'{self.Out_Path}_Area.tiff', format='tiff', dpi=600)
+
+            plt.close(fig_B)
+            
+            ### FWHM
+            
+            self.img_height = self.fig_width * self.aspect_ratio * 1.50
+            fig_height = self.img_height
+            fig_C = plt.figure(figsize=(self.fig_width / 2.0, fig_height / 2.0))
+            gs = GridSpec(2, 1, height_ratios=[1.0,0.50], figure=fig_C)
+            
+            # Plot images and scatter values
+            ax3 = fig_C.add_subplot(gs[0, 0])
+            ax3.imshow(self.img_array, cmap='Greys', aspect='equal')
+            ax3.set_xlim(0, self.x_range_img)
+            ax3.set_ylim(self.y_range_img, 0)
+            ax3.set_xlabel("(um)")
+            ax3.set_ylabel("(um)")
+            ax3.set_title("Peak FWHM")
+            ax3.xaxis.set_major_locator(MultipleLocator(256 / self.binning * 2))
+            ax3.yaxis.set_major_locator(MultipleLocator(216 / self.binning * 2))
+            ax3.xaxis.set_major_formatter(FuncFormatter(self.scale_x))
+            ax3.yaxis.set_major_formatter(FuncFormatter(self.scale_y))
+            self.plot_scatter_values(ax3, cmap, self.scatter_plots_fwhm, self.kbx, self.kby, pk_fwhm_Relative, pk_GoF_I, GoF_threshold, Percentile,20, Min_Range=FWHM_min, Max_Range=FWHM_max)
+            
+            # Plot histograms
+            if self.dim < 2:
+                flat_GoF = [np.abs(item - 1.0) for item in pk_GoF_I]
+            else:
+                flat_GoF = [np.abs(item - 1.0) for sublist in pk_GoF_I for item in sublist]
+    
+            
+            if self.dim < 2:
+                flat_cry = pk_fwhm_Relative
+            else:
+                flat_cry = [item for sublist in pk_fwhm_Relative for item in sublist]
+            if self.GoF_threshold is None:
+                data = [flat_cry for flat_cry in flat_cry if flat_cry > 0.0]
+            else:
+                data = [flat_cry for flat_cry, flat_GoF in zip(flat_cry, flat_GoF) if flat_GoF < self.GoF_threshold]
+            if Percentile >= 0.0:
+                vmin, vmax = np.percentile(data, [Percentile, 100-Percentile])
+            else:
+                if FWHM_min==None: vmin = 0.0
+                else: vmin = FWHM_min
+                if FWHM_max==None: vmax = np.max(data)
+                else: vmax = FWHM_max
+            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+            #norm = plt.Normalize(np.min(data), np.max(data))
+            hist_ax3 = fig_C.add_subplot(gs[1, 0])
+            n, bins, patches = hist_ax3.hist(data, bins=40, range=(vmin, vmax), alpha=1.0)
+            for patch, value in zip(patches, bins):
+                color = cmap(norm(value))
+                patch.set_facecolor(color)
+            #hist_ax3.hist(data, bins=40, alpha=1.0, color='gray')
+            hist_ax3.yaxis.set_visible(False)
+
+            plt.tight_layout(pad=1)
+            
+            # Save button callback
+            self.save_figure_safely(fig_C, f'{self.Out_Path}_FWHM.tiff', 'tiff', 600)
+            #fig_C.savefig(f'{self.Out_Path}_FWHM.tiff', format='tiff', dpi=600)
+
+            plt.close(fig_C)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
     def ImageCorrelatedCrystallography_Cake_ExploreArea(self, x_min, x_max, n = 0, GoF_threshold = 0.02, Percentile=10):
         self.import_diffractiondata_Cake()
         self.import_imaging_data()
